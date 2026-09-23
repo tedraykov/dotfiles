@@ -13,7 +13,6 @@ echo "👉 Detected OS: $OS"
 if [ "$OS" = "Linux" ]; then
     echo "📦 Installing Ansible for Ubuntu/Debian..."
     sudo apt update -y
-    sudo apt install -y software-properties-common
     sudo apt install -y ansible
 
 elif [ "$OS" = "Darwin" ]; then

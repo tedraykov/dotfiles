@@ -161,4 +161,3 @@ case ":$PATH:" in
 esac
 # pnpm end
 
-[[ -s "/Users/tedraykov/.gvm/scripts/gvm" ]] && source "/Users/tedraykov/.gvm/scripts/gvm"
