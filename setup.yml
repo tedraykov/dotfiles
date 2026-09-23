@@ -193,6 +193,18 @@
         dest: "{{ oh_my_zsh }}/custom/themes/powerlevel10k"
         depth: 1
 
+    # Uses the system zsh (/bin/zsh on macOS, apt's /usr/bin/zsh on Ubuntu),
+    # both of which are already listed in /etc/shells. Skipped when zsh is
+    # already the login shell, so sudo is only needed on the first run.
+    - name: Set zsh as the default login shell
+      become: true
+      ansible.builtin.user:
+        name: "{{ ansible_facts['user_id'] }}"
+        shell: "{{ zsh_path }}"
+      vars:
+        zsh_path: "{{ (ansible_facts['os_family'] == 'Darwin') | ternary('/bin/zsh', '/usr/bin/zsh') }}"
+      when: ansible_facts['user_shell'] != zsh_path
+
     - name: Clone TPM (Tmux Plugin Manager)
       ansible.builtin.git:
         repo: 'https://github.com/tmux-plugins/tpm'
@@ -237,6 +249,26 @@
         nvm alias default node
       args:
         executable: /bin/bash
+
+    - name: Install Claude Code
+      ansible.builtin.shell: curl -fsSL https://claude.ai/install.sh | bash
+      args:
+        creates: "{{ home }}/.local/bin/claude"
+
+    # Installed into the nvm default Node, so it is reinstalled whenever
+    # "nvm install node" moves the default to a new version.
+    - name: Install Codex CLI
+      ansible.builtin.shell: |
+        . "{{ home }}/.nvm/nvm.sh"
+        if command -v codex >/dev/null; then
+          echo "codex already installed"
+        else
+          npm install -g @openai/codex
+        fi
+      args:
+        executable: /bin/bash
+      register: codex_install
+      changed_when: "'codex already installed' not in codex_install.stdout"
 
     - name: Linux | Clone Jenv
       ansible.builtin.git:
