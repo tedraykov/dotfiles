@@ -12,6 +12,12 @@ font-feature = -calt
 font-feature = -liga
 font-feature = -dlig
 
+# macOS stopped stroke-thickening text at some point; without this glyphs come
+# out noticeably thinner than in iTerm2. 200 is a touch lighter than the
+# default 255, which reads as slightly smeared at this size.
+font-thicken = true
+font-thicken-strength = 200
+
 # Transparency 0.02 and a 20pt blur in the iTerm2 profile.
 background-opacity = 0.98
 background-blur = 20
