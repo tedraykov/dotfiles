@@ -5,7 +5,7 @@ if [[ $# -eq 1 ]]; then
 else
     selected=$(
       {
-        fd --type d --max-depth 1 --min-depth 1 '^[^.]' ~/dev/redis/Redis-Enterprise
+        fd --type d --max-depth 1 --min-depth 1 '^[^.]' ~/dev/redis/re-control-plane
         fd --type d --max-depth 1 --min-depth 1 '^[^.]' ~/.config/fire/incidents
         # 2) fd search results
         fd --type d --max-depth 2 --min-depth 1 . ~/dev

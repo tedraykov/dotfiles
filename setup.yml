@@ -7,6 +7,7 @@
     # Modern fact syntax
     home: "{{ ansible_facts['env']['HOME'] }}"
     oh_my_zsh: "{{ ansible_facts['env']['HOME'] }}/.oh-my-zsh"
+    python_version: "3.13"
     dotfiles:
       - { src: "nvim", dest: "{{ home }}/.config/nvim" }
       - { src: "tmux/.tmux.conf", dest: "{{ home }}/.tmux.conf" }
@@ -110,6 +111,22 @@
         state: link
       when: ansible_facts['os_family'] == "Debian"
 
+    - name: Ubuntu | Fetch latest Hugo release metadata
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/gohugoio/hugo/releases/latest
+        return_content: yes
+      register: hugo_release
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Ubuntu | Install Hugo extended from GitHub release
+      become: true
+      vars:
+        hugo_version: "{{ hugo_release.json.tag_name | regex_replace('^v', '') }}"
+        hugo_arch: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
+      ansible.builtin.apt:
+        deb: "https://github.com/gohugoio/hugo/releases/download/v{{ hugo_version }}/hugo_extended_{{ hugo_version }}_linux-{{ hugo_arch }}.deb"
+      when: ansible_facts['os_family'] == "Debian"
+
     - name: Ubuntu | Install pyenv via installer
       ansible.builtin.shell: curl https://pyenv.run | bash
       args:
@@ -125,12 +142,14 @@
           - fzf
           - neovim
           - pyenv
+          - xz
           - jenv
           - eza
           - bat
           - tmux
           - bison
           - tree-sitter-cli
+          - hugo
         state: present
         update_homebrew: yes
       when: ansible_facts['os_family'] == "Darwin"
@@ -296,9 +315,25 @@
       args:
         creates: "{{ home }}/.cargo/bin/rustc"
 
-    - name: Install Poetry (Python Package Manager)
-      ansible.builtin.shell: curl -sSL https://install.python-poetry.org | python3 -
+    # The system python3 on a fresh Mac is 3.9, which Poetry no longer supports,
+    # so build a current Python with pyenv and install Poetry with that.
+    - name: Install Python via pyenv and set it as the global version
+      ansible.builtin.shell: |
+        export PYENV_ROOT="{{ home }}/.pyenv"
+        export PATH="$PYENV_ROOT/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+        pyenv install --skip-existing {{ python_version }}
+        pyenv global "$(pyenv latest {{ python_version }})"
       args:
+        executable: /bin/bash
+        creates: "{{ home }}/.pyenv/version"
+
+    - name: Install Poetry (Python Package Manager)
+      ansible.builtin.shell: |
+        export PYENV_ROOT="{{ home }}/.pyenv"
+        export PATH="$PYENV_ROOT/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+        curl -sSL https://install.python-poetry.org | "$(pyenv prefix)/bin/python3" -
+      args:
+        executable: /bin/bash
         creates: "{{ home }}/.local/bin/poetry"
 
     # ==========================================
